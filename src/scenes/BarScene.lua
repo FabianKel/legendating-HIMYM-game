@@ -4,6 +4,7 @@
 -- bar, tal como pide el diseno en game_info.md.
 
 local Scene = require("src.ecs.Scene")
+local RunState = require("src.state.RunState")
 local ExampleData = require("src.data.ExampleData")
 
 local BarInputSystem = require("src.systems.BarInputSystem")
@@ -13,19 +14,20 @@ return function(payload)
     payload = payload or {}
     local scene = Scene.new("bar")
 
-    local night = payload.night or 1
-    local difficulty = payload.difficulty or 1
-    local player = payload.player or ExampleData.defaultPlayer
+    local runState = payload.runState or RunState.new()
+    scene.registry:setResource("runState", runState)
 
+    -- vista de lo que el HUD necesita; `player` es la MISMA tabla del
+    -- RunState, asi que aplicar el challenge la modifica de verdad
     scene.registry:setResource("run", {
-        night = night,
-        difficulty = difficulty,
-        player = player,
+        night = runState.night,
+        difficulty = math.ceil(runState.night * 5 / RunState.NIGHTS),
+        player = runState.player,
     })
 
     -- las 3 cartas de challenge de la noche: entidades puras, una por
     -- carta, en el orden en que se muestran
-    for _, challenge in ipairs(ExampleData.challengesForNight(night)) do
+    for _, challenge in ipairs(ExampleData.challengesForNight(runState.night)) do
         scene.registry:spawn({ challengeCard = challenge })
     end
 

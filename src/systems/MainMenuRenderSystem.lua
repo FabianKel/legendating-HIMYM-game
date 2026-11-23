@@ -25,8 +25,8 @@ function MainMenuRenderSystem.unload(scene)
 end
 
 local BUTTON_W, BUTTON_H = 220, 36
-local BUTTON_GAP = 12
-local BUTTONS_TOP = 200
+local BUTTON_GAP = 8
+local BUTTONS_TOP = 184
 
 function MainMenuRenderSystem.draw(scene)
     local registry = scene.registry
@@ -42,7 +42,7 @@ function MainMenuRenderSystem.draw(scene)
     love.graphics.setColor(0.95, 0.75, 0.2)
     love.graphics.printf("DATING!", 0, 132, Screen.w, "center")
 
-    -- botones: Play / Settings / Exit
+    -- botones: (Continue) / New Game / Settings / Exit
     local _, menu = registry:first("mainMenu")
     love.graphics.setFont(optionFont)
     for i, option in ipairs(menu.options) do
@@ -73,7 +73,7 @@ function MainMenuRenderSystem.draw(scene)
 
     if registry:resource("helpVisible") then
         MainMenuRenderSystem.drawPanel("How to play",
-            "Choose Play to start the 7-night\nchallenge.\n" ..
+            "New Game starts the 7-night challenge.\nContinue loads your last day.\n" ..
             "Up/Down arrows move the cursor.\n" ..
             "ENTER confirms. H closes this help.")
     end

@@ -7,6 +7,8 @@
 
 local Scene = require("src.ecs.Scene")
 local ExampleData = require("src.data.ExampleData")
+local RunState = require("src.state.RunState")
+local HandGenerator = require("src.generation.HandGenerator")
 
 local BattleInputSystem = require("src.systems.BattleInputSystem")
 local BattleRenderSystem = require("src.systems.BattleRenderSystem")
@@ -30,13 +32,15 @@ return function(payload)
     payload = payload or {}
     local scene = Scene.new("battle")
 
-    local girl = payload.girl or ExampleData.girlForNight(payload.night or 1)
+    local runState = payload.runState or RunState.new()
+    local girl = payload.girl or ExampleData.girlForNight(runState.night)
     local challenge = payload.selectedChallenge or ExampleData.challenges[1]
 
+    scene.registry:setResource("runState", runState)
     scene.registry:setResource("run", {
-        night = payload.night or 1,
-        difficulty = payload.difficulty or 1,
-        player = payload.player or ExampleData.defaultPlayer,
+        night = runState.night,
+        difficulty = math.ceil(runState.night * 5 / RunState.NIGHTS),
+        player = runState.player,
     })
     scene.registry:setResource("girl", girl)
     scene.registry:setResource("challenge", challenge)
@@ -49,17 +53,15 @@ return function(payload)
         dialogue = girl.name .. " glances at you from across the bar.",
     })
 
-    -- copia cada carta en vez de compartir la tabla de ExampleData: el
-    -- input system le agrega un campo `used`, y si reusaramos la misma
-    -- tabla esa marca sobreviviria a esta batalla y dejaria la mano
-    -- "vacia" (todo used=true) en la siguiente chica -- justo el bug
-    -- que producia el nil al jugar una carta ya marcada de antes.
-    for _, card in ipairs(ExampleData.conversationCards) do
+    -- la mano sale del Play Book (la coleccion del RunState). Son
+    -- COPIAS: el input system les agrega `used`, y esa marca no debe
+    -- sobrevivir a esta batalla ni tocar la coleccion.
+    for _, card in ipairs(HandGenerator.draw(runState.collection, 3)) do
         scene.registry:spawn({
             conversationCard = {
                 name = card.name,
-                description = card.description,
-                delta = card.delta,
+                description = card.text,
+                delta = card.power,
             },
         })
     end

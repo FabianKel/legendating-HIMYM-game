@@ -6,6 +6,7 @@
 -- escribe en battle/conversationCard y dispara el switchRequest final.
 
 local ExampleData = require("src.data.ExampleData")
+local RunState = require("src.state.RunState")
 
 math.randomseed(os.time())
 
@@ -41,15 +42,15 @@ local function nextScene(scene)
     -- switchRequest NO lleva `event = true`: debe sobrevivir hasta que
     -- Game.update lo revise al final del frame -- ver src/Game.lua.
     if battle.phase == "success" then
+        -- la noche se gano: el RunState avanza al dia siguiente
+        local runState = registry:resource("runState")
+        local _, girl = registry:first("girl")
+        runState.conquests[#runState.conquests + 1] = { night = runState.night, name = girl.name }
+        runState.night = math.min(runState.night + 1, RunState.NIGHTS)
+        RunState.startDay(runState)
+        RunState.applyEffects(runState.player, { energy = 3 })
         registry:spawn({
-            switchRequest = {
-                to = "bar",
-                payload = {
-                    night = math.min(run.night + 1, 7),
-                    difficulty = run.difficulty + 1,
-                    player = run.player,
-                },
-            },
+            switchRequest = { to = "day", payload = { runState = runState } },
         })
     else
         -- perder devuelve al menu principal, tal como pide el diseno

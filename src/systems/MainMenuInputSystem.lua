@@ -3,23 +3,20 @@
 -- visibilidad, y dispara el cambio de escena -- nunca dibuja nada. Va
 -- PRIMERO en la escena (ver el comentario de Scene sobre el orden).
 
-local ExampleData = require("src.data.ExampleData")
+local RunState = require("src.state.RunState")
 
 local MainMenuInputSystem = { name = "mainMenuInput" }
 
-local function startRun(registry)
+-- runState = nil arranca una partida nueva; si no, continua la guardada.
+local function startRun(registry, runState)
     -- switchRequest NO lleva `event = true`: a diferencia de un evento
     -- normal (que el Game barre al final del frame), este debe seguir
     -- vivo hasta que Game.update lo revise, ya arrastro al final --
     -- ver el comentario de Game.lua.
     registry:spawn({
         switchRequest = {
-            to = "bar",
-            payload = {
-                night = 1,
-                difficulty = 1,
-                player = ExampleData.defaultPlayer,
-            },
+            to = "day",
+            payload = { runState = runState or RunState.new() },
         },
     })
 end
@@ -49,8 +46,10 @@ function MainMenuInputSystem.update(scene, dt)
                     menu.cursor = menu.cursor % #menu.options + 1
                 elseif event.key == "return" or event.key == "space" then
                     local option = menu.options[menu.cursor]
-                    if option == "Play" then
+                    if option == "New Game" then
                         startRun(registry)
+                    elseif option == "Continue" then
+                        startRun(registry, registry:resource("savedRun"))
                     elseif option == "Settings" then
                         registry:setResource("settingsVisible", true)
                     elseif option == "Exit" then

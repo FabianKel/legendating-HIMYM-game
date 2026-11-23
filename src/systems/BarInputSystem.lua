@@ -5,22 +5,9 @@
 -- aplicado a los stats del jugador.
 
 local ExampleData = require("src.data.ExampleData")
+local RunState = require("src.state.RunState")
 
 local BarInputSystem = { name = "barInput" }
-
--- aplica el efecto del challenge elegido sobre los stats del jugador;
--- ejemplo simple, el balance real de estos numeros queda fuera de
--- esta tarea de UI
-local function applyChallenge(player, challenge)
-    local updated = {}
-    for key, value in pairs(player) do
-        updated[key] = value
-    end
-    for key, delta in pairs(challenge.statEffects or {}) do
-        updated[key] = (updated[key] or 0) + delta
-    end
-    return updated
-end
 
 function BarInputSystem.update(scene, dt)
     local registry = scene.registry
@@ -33,18 +20,19 @@ function BarInputSystem.update(scene, dt)
         selection.confirmTimer = selection.confirmTimer - dt
         if selection.confirmTimer <= 0 then
             local chosen = registry:get(selection.chosenEntity, "challengeCard")
+            local runState = registry:resource("runState")
+            RunState.applyEffects(runState.player, chosen.statEffects)
             registry:spawn({
                 switchRequest = {
                     to = "battle",
                     payload = {
-                        night = run.night,
-                        difficulty = run.difficulty,
-                        player = applyChallenge(run.player, chosen),
+                        runState = runState,
                         selectedChallenge = chosen,
                         girl = ExampleData.girlForNight(run.night),
                     },
                 },
             })
+            selection.confirming = false -- un solo switchRequest
         end
         return
     end
