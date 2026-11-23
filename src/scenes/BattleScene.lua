@@ -33,8 +33,11 @@ return function(payload)
     local scene = Scene.new("battle")
 
     local runState = payload.runState or RunState.new()
-    local girl = payload.girl or ExampleData.girlForNight(runState.night)
-    local challenge = payload.selectedChallenge or ExampleData.challenges[1]
+    -- la chica viene de la noche en curso (la que Barney eligio en el mapa)
+    local entry = runState.nightState and runState.nightState.girls[payload.girlIndex or 1]
+    local girl = entry and entry.girl or ExampleData.girlForNight(runState.night)
+    local challenge = runState.challenge or ExampleData.challenges[1]
+    scene.registry:setResource("girlIndex", payload.girlIndex or 1)
 
     scene.registry:setResource("runState", runState)
     scene.registry:setResource("run", {

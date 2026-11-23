@@ -53,8 +53,23 @@ local function nextScene(scene)
             switchRequest = { to = "day", payload = { runState = runState } },
         })
     else
-        -- perder devuelve al menu principal, tal como pide el diseno
-        registry:spawn({ switchRequest = { to = "menu" } })
+        -- te rechazo: se va del bar y vuelves al mapa con las demas.
+        -- Si ya no queda ninguna, el reto fracasa y se vuelve al menu.
+        local runState = registry:resource("runState")
+        local _, girl = registry:first("girl")
+        if runState.nightState then
+            RunState.removeGirl(runState, registry:resource("girlIndex"))
+        end
+        if runState.nightState and #runState.nightState.girls > 0 then
+            registry:spawn({
+                switchRequest = {
+                    to = "map",
+                    payload = { runState = runState, message = girl.name .. " left the bar. Next!" },
+                },
+            })
+        else
+            registry:spawn({ switchRequest = { to = "menu" } })
+        end
     end
 end
 

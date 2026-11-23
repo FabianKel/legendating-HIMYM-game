@@ -83,4 +83,21 @@ function ExampleData.girlForNight(night)
     return ExampleData.girls[index]
 end
 
+-- Las chicas de la noche en el mapa: 3 del pool, cada una en un lugar
+-- distinto de McLaren's (marcadores 1-7) y con su apariencia.
+local Characters = require("src.ui.Characters")
+local SPOTS = { "1", "3", "6", "2", "5", "7", "4" }
+
+function ExampleData.girlsForNight(night)
+    local result = {}
+    for i = 1, 3 do
+        local index = ((night + i - 2) % #ExampleData.girls) + 1
+        local girl = {}
+        for k, v in pairs(ExampleData.girls[index]) do girl[k] = v end
+        girl.look = Characters.lookFromNumber(index * 5 + i)
+        result[i] = { spot = SPOTS[((night + i * 2) % #SPOTS) + 1], girl = girl }
+    end
+    return result
+end
+
 return ExampleData

@@ -33,6 +33,7 @@ function love.load(args)
     Game.registerScene("day", require("src.scenes.DayScene"))
     Game.registerScene("playbook", require("src.scenes.PlayBookScene"))
     Game.registerScene("bar", require("src.scenes.BarScene"))
+    Game.registerScene("map", require("src.scenes.MapScene"))
     Game.registerScene("battle", require("src.scenes.BattleScene"))
 
     Game.start("menu")

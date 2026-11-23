@@ -81,6 +81,31 @@ function RunState.startDay(runState)
     runState.hour = 10
     runState.dayLog = {}
     runState.packOpened = false
+    runState.challenge = nil
+    runState.nightState = nil
+end
+
+-- Arranca la noche en McLaren's. `girls` = lista de { spot = "1".."7",
+-- girl = {datos} }. El estado de la noche vive en el RunState (y no
+-- en la escena del mapa) porque sobrevive a ir y volver de cada
+-- encuentro: que chicas siguen en el bar, la hora, donde estaba Barney.
+function RunState.startNight(runState, challenge, girls)
+    runState.challenge = RunState.copy(challenge)
+    runState.nightState = {
+        hour = 21,         -- 21:00 -> 02:00 (26)
+        girls = RunState.copy(girls),
+        playerX = nil,     -- nil = el inicio del mapa (marcador P)
+        playerY = nil,
+        drinks = 0,
+        gangTalked = false,
+        mirrorUsed = false,
+        speechBonus = 0,   -- bonos temporales de esta noche
+    }
+end
+
+-- Quita a una chica de la noche (te rechazo y se fue del bar).
+function RunState.removeGirl(runState, index)
+    table.remove(runState.nightState.girls, index)
 end
 
 return RunState

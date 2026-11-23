@@ -22,15 +22,9 @@ function BarInputSystem.update(scene, dt)
             local chosen = registry:get(selection.chosenEntity, "challengeCard")
             local runState = registry:resource("runState")
             RunState.applyEffects(runState.player, chosen.statEffects)
+            RunState.startNight(runState, chosen, ExampleData.girlsForNight(run.night))
             registry:spawn({
-                switchRequest = {
-                    to = "battle",
-                    payload = {
-                        runState = runState,
-                        selectedChallenge = chosen,
-                        girl = ExampleData.girlForNight(run.night),
-                    },
-                },
+                switchRequest = { to = "map", payload = { runState = runState } },
             })
             selection.confirming = false -- un solo switchRequest
         end
