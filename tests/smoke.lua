@@ -14,7 +14,10 @@ local scripts = require("tests.smoke_scripts")
 
 function Smoke.install(Game, name)
     local steps = assert(scripts[name], "unknown smoke script: " .. tostring(name))
-    love.filesystem.remove("save.lua") -- siempre desde cero
+    -- siempre desde cero: borrar el save y reconstruir el menu (que ya
+    -- se habia construido viendo el save viejo y ofreciendo "Continue")
+    love.filesystem.remove("save.lua")
+    Game.start("menu")
     love.filesystem.createDirectory("shots")
 
     love.errorhandler = function(msg)

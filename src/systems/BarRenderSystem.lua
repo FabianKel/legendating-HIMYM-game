@@ -5,6 +5,7 @@
 
 local Screen = require("src.Screen")
 local Widgets = require("src.ui.Widgets")
+local Images = require("src.ui.Images")
 
 local BarRenderSystem = { name = "barRender" }
 
@@ -22,9 +23,9 @@ function BarRenderSystem.unload(scene)
     headerFont, cardFont, bodyFont, hintFont, bannerFont = nil, nil, nil, nil, nil
 end
 
-local CARD_W, CARD_H = 150, 190
-local CARD_GAP = 20
-local CARDS_X, CARDS_Y = 220, 60
+local CARD_W, CARD_H = 136, 190
+local CARD_GAP = 10
+local CARDS_X, CARDS_Y = 210, 60
 local PLAYER_X, PLAYER_Y = 90, 220
 
 function BarRenderSystem.draw(scene)
@@ -60,28 +61,14 @@ end
 function BarRenderSystem.drawHeader(run)
     love.graphics.setFont(headerFont)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print("5:00", 16, 12)
+    love.graphics.print("21:00", 16, 12)
     love.graphics.printf("NIGHT " .. run.night .. "/7", 0, 12, Screen.w, "center")
     Widgets.drawStars(Screen.w - 16 - 5 * 14, 14, run.difficulty, 5)
 end
 
 function BarRenderSystem.drawPlayer(player)
-    Widgets.drawDiamond(PLAYER_X, PLAYER_Y, 70, "Player")
-
-    local stats = {
-        { label = "Awesomeness", value = player.awesomeness, max = 1 },
-        { label = "Speech",      value = player.speech,      max = 10 },
-        { label = "Energy",      value = player.energy,      max = 10 },
-    }
-    love.graphics.setFont(bodyFont)
-    for i, stat in ipairs(stats) do
-        local y = PLAYER_Y + 50 + (i - 1) * 16
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.print(stat.label .. ":", PLAYER_X - 55, y)
-        love.graphics.setColor(Widgets.statColor(stat.value, stat.max))
-        love.graphics.print(tostring(stat.value), PLAYER_X + 40, y)
-    end
-    love.graphics.setColor(1, 1, 1)
+    Images.drawBarney(1, PLAYER_X, PLAYER_Y + 20, 5)
+    Widgets.drawPlayerStats(player, PLAYER_X - 70, PLAYER_Y + 36)
 end
 
 function BarRenderSystem.drawCards(registry, selection)
@@ -104,9 +91,17 @@ function BarRenderSystem.drawCards(registry, selection)
         love.graphics.printf(challenge.name, x + 8, CARDS_Y + 10, CARD_W - 16, "left")
 
         love.graphics.setFont(bodyFont)
-        love.graphics.printf(challenge.description, x + 8, CARDS_Y + 42, CARD_W - 16, "left")
+        love.graphics.printf(challenge.description, x + 8, CARDS_Y + 50, CARD_W - 16, "left")
 
-        love.graphics.printf("Challenge " .. i, x + 8, CARDS_Y + CARD_H - 20, CARD_W - 16, "left")
+        -- estilo (decide los Plays permitidos) y efectos en los stats
+        love.graphics.printf(("Style: %s"):format(challenge.style:upper()), x + 8, CARDS_Y + 104, CARD_W - 16, "left")
+        local effects = {}
+        for stat, delta in pairs(challenge.effects or {}) do
+            effects[#effects + 1] = ("%s %+g"):format(stat == "awesomeness" and "Awesome" or "Speech", delta)
+        end
+        table.sort(effects)
+        love.graphics.printf(table.concat(effects, ", "), x + 8, CARDS_Y + 122, CARD_W - 16, "left")
+        Widgets.drawStars(x + 8, CARDS_Y + CARD_H - 22, challenge.tier or 1, 3)
     end
     love.graphics.setColor(1, 1, 1)
 end

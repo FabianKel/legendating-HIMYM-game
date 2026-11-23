@@ -37,4 +37,10 @@ function SaveFile.load()
     return data
 end
 
+-- Borra la partida: el reto termino (se gano o se perdio) y "Continue"
+-- ya no tiene sentido. Un roguelike no deja reintentar la noche perdida.
+function SaveFile.clear()
+    love.filesystem.remove(SaveFile.FILENAME)
+end
+
 return SaveFile

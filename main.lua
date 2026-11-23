@@ -35,6 +35,7 @@ function love.load(args)
     Game.registerScene("bar", require("src.scenes.BarScene"))
     Game.registerScene("map", require("src.scenes.MapScene"))
     Game.registerScene("battle", require("src.scenes.BattleScene"))
+    Game.registerScene("result", require("src.scenes.ResultScene"))
 
     Game.start("menu")
 

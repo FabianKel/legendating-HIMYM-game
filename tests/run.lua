@@ -28,14 +28,8 @@ local function test(name, fn)
 end
 
 local tests = {}
-for _, file in ipairs({ "tests.test_progression" }) do
+for _, file in ipairs({ "tests.test_progression", "tests.test_gameplay", "tests.test_map" }) do
     tests[#tests + 1] = require(file)
-end
-
--- archivos de tests opcionales (se agregan en branches posteriores)
-for _, file in ipairs({ "tests.test_gameplay", "tests.test_map" }) do
-    local ok, module = pcall(require, file)
-    if ok then tests[#tests + 1] = module end
 end
 
 print("Running tests...")

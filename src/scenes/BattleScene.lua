@@ -1,76 +1,111 @@
--- La escena Battle: llega una chica nueva. Presentacion estilo
--- Pokemon (rombos player/chica, barra de Interest como si fuera HP,
--- cartas de conversacion como movimientos) que atraviesa varias fases
--- DENTRO de la misma pantalla: scouting -> interaction -> asking ->
--- success/fail. Es una sola escena porque, visualmente, sigue siendo
--- "la batalla con la chica actual" en todo momento.
+-- La escena Battle: el encuentro con una chica, con composicion de
+-- batalla RPG. Fases (game_info.md, pasos 3-8):
+--
+--   scouting    -> lees sus stats; el Interest inicial ya se calculo
+--   approach    -> eliges un Play de apertura (limitado por el challenge)
+--   interaction -> juegas hasta 3 cartas de conversacion de tu Play Book
+--   asking      -> pides el numero (Factor X en noches 2, 5 y 7)
+--   result      -> exito (siguiente noche) o rechazo (de vuelta al bar)
+--
+-- Cada fase es manejada por sistemas pequenos que se comunican con
+-- eventos; BattleFlowSystem es el unico que cambia la fase.
 
 local Scene = require("src.ecs.Scene")
-local ExampleData = require("src.data.ExampleData")
 local RunState = require("src.state.RunState")
+local Interest = require("src.rules.Interest")
 local HandGenerator = require("src.generation.HandGenerator")
+local GirlGenerator = require("src.generation.GirlGenerator")
 
-local BattleInputSystem = require("src.systems.BattleInputSystem")
-local BattleRenderSystem = require("src.systems.BattleRenderSystem")
-
--- Interes inicial de ejemplo: un challenge "raro" arranca mejor contra
--- una chica de rareza alta, y uno "formal" arranca mejor contra una
--- convencional (regla del GDD del juego, simplificada para esta tarea
--- de UI: no hay que balancearla, solo mostrar un numero creible).
-local function startingInterest(challenge, girl)
-    local awesomeness = (challenge.statEffects and challenge.statEffects.awesomeness) or 0
-    local raw
-    if awesomeness < 0 then
-        raw = girl.rareza
-    else
-        raw = 10 - girl.rareza
-    end
-    return math.max(1, math.min(10, raw))
-end
+local BattleInputSystem = require("src.systems.battle.BattleInputSystem")
+local ApproachSystem = require("src.systems.battle.ApproachSystem")
+local ConversationSystem = require("src.systems.battle.ConversationSystem")
+local FactorXSystem = require("src.systems.battle.FactorXSystem")
+local AskNumberSystem = require("src.systems.battle.AskNumberSystem")
+local ConsequenceSystem = require("src.systems.battle.ConsequenceSystem")
+local BattleFlowSystem = require("src.systems.battle.BattleFlowSystem")
+local BattleExitSystem = require("src.systems.battle.BattleExitSystem")
+local TextboxSystem = require("src.systems.common.TextboxSystem")
+local FloatingTextSystem = require("src.systems.common.FloatingTextSystem")
+local BattleStageRenderSystem = require("src.systems.battle.BattleStageRenderSystem")
+local BattlePanelsRenderSystem = require("src.systems.battle.BattlePanelsRenderSystem")
+local BattleHandRenderSystem = require("src.systems.battle.BattleHandRenderSystem")
+local TextboxRenderSystem = require("src.systems.common.TextboxRenderSystem")
+local FloatingTextRenderSystem = require("src.systems.common.FloatingTextRenderSystem")
+local BattleResultRenderSystem = require("src.systems.battle.BattleResultRenderSystem")
 
 return function(payload)
     payload = payload or {}
     local scene = Scene.new("battle")
+    local registry = scene.registry
 
     local runState = payload.runState or RunState.new()
-    -- la chica viene de la noche en curso (la que Barney eligio en el mapa)
-    local entry = runState.nightState and runState.nightState.girls[payload.girlIndex or 1]
-    local girl = entry and entry.girl or ExampleData.girlForNight(runState.night)
-    local challenge = runState.challenge or ExampleData.challenges[1]
-    scene.registry:setResource("girlIndex", payload.girlIndex or 1)
+    if not runState.nightState then -- arranque directo (debug): una noche minima
+        RunState.startNight(runState, require("src.data.challenges")[1],
+            GirlGenerator.night(runState.night, love.math.random))
+    end
+    local night = runState.nightState
+    local girlIndex = payload.girlIndex or 1
+    local girl = RunState.copy(night.girls[girlIndex].girl)
+    local challenge = runState.challenge
 
-    scene.registry:setResource("runState", runState)
-    scene.registry:setResource("run", {
-        night = runState.night,
-        difficulty = math.ceil(runState.night * 5 / RunState.NIGHTS),
-        player = runState.player,
-    })
-    scene.registry:setResource("girl", girl)
-    scene.registry:setResource("challenge", challenge)
-    scene.registry:setResource("battle", {
-        phase = "scouting", -- scouting -> interaction -> asking -> success | fail
-        interest = startingInterest(challenge, girl),
+    registry:setResource("runState", runState)
+    registry:setResource("girlIndex", girlIndex)
+    registry:setResource("challenge", challenge)
+    registry:spawn({ girl = girl })
+
+    -- interes inicial + el bono del espejo (se consume con esta chica)
+    local interest = Interest.initial(girl, runState.player, challenge, runState.night)
+    local mirror = night.mirrorBonus or 0
+    night.mirrorBonus = 0
+    registry:setResource("battle", {
+        phase = "scouting",
+        interest = math.min(Interest.MAX, interest + mirror),
         cursor = 1,
         cardsPlayed = 0,
-        factorXApplied = false,
-        dialogue = girl.name .. " glances at you from across the bar.",
+        factorXDone = false,
+        timer = 0,
+        shake = 0,
     })
 
-    -- la mano sale del Play Book (la coleccion del RunState). Son
-    -- COPIAS: el input system les agrega `used`, y esa marca no debe
-    -- sobrevivir a esta batalla ni tocar la coleccion.
-    for _, card in ipairs(HandGenerator.draw(runState.collection, 3)) do
-        scene.registry:spawn({
-            conversationCard = {
-                name = card.name,
-                description = card.text,
-                delta = card.power,
-            },
+    -- los Plays que el challenge permite (datos planos; las funciones
+    -- de bono se buscan por id en data/plays.lua)
+    for _, play in ipairs(Interest.allowedPlays(challenge.style)) do
+        registry:spawn({
+            playOption = { id = play.id, name = play.name, style = play.style, cost = play.cost },
         })
     end
 
-    scene:addSystem(BattleInputSystem)   -- input primero: escribe lo que render lee
-    scene:addSystem(BattleRenderSystem)
+    -- la mano: 3 cartas del Play Book (copias)
+    for _, card in ipairs(HandGenerator.draw(runState.collection, BattleFlowSystem.HAND_SIZE)) do
+        registry:spawn({ handCard = { card = card, used = false } })
+    end
+
+    local intro = ("%s is here. %s, looks %s. Starting interest: %d%%"):format(
+        girl.name, girl.profile, girl.mood:lower(), interest)
+    if mirror > 0 then intro = intro .. (" (+%d from the mirror)"):format(mirror) end
+    registry:spawn({
+        position = { x = 12, y = 324 },
+        size = { w = 616, h = 68 },
+        textbox = { text = intro, visibleChars = 0, speed = 60 },
+    })
+
+    -- input -> efectos -> resolucion -> consecuencias -> fase -> salida
+    scene:addSystem(BattleInputSystem)
+    scene:addSystem(ApproachSystem)
+    scene:addSystem(ConversationSystem)
+    scene:addSystem(FactorXSystem)
+    scene:addSystem(AskNumberSystem)
+    scene:addSystem(ConsequenceSystem)
+    scene:addSystem(BattleFlowSystem)
+    scene:addSystem(BattleExitSystem)
+    scene:addSystem(TextboxSystem)
+    scene:addSystem(FloatingTextSystem)
+    scene:addSystem(BattleStageRenderSystem)
+    scene:addSystem(BattlePanelsRenderSystem)
+    scene:addSystem(BattleHandRenderSystem)
+    scene:addSystem(TextboxRenderSystem)
+    scene:addSystem(FloatingTextRenderSystem)
+    scene:addSystem(BattleResultRenderSystem)
 
     return scene
 end

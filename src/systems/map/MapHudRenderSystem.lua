@@ -25,12 +25,19 @@ function MapHudRenderSystem.draw(scene)
     Widgets.drawBar(404, 9, 70, 8, player.energy / player.maxEnergy, Widgets.statColor(player.energy, player.maxEnergy))
     love.graphics.print(("Girls left: %d"):format(#night.girls), 486, 7)
 
-    if runState.challenge then
-        love.graphics.setColor(0, 0, 0, 0.6)
-        love.graphics.rectangle("fill", 0, 26, 250, 18)
-        love.graphics.setColor(0.8, 0.8, 0.85)
-        love.graphics.print("Challenge: " .. runState.challenge.name, 10, 29)
+    -- challenge activo y bonos de la noche (que lugares ya usaste)
+    love.graphics.setColor(0, 0, 0, 0.6)
+    love.graphics.rectangle("fill", 0, 26, 300, 32)
+    love.graphics.setColor(0.8, 0.8, 0.85)
+    love.graphics.print(("Challenge: %s (%s)"):format(runState.challenge.name, runState.challenge.style), 10, 29)
+    local function flag(text, on, x)
+        love.graphics.setColor(on and 0.5 or 0.55, on and 1 or 0.55, on and 0.6 or 0.6)
+        love.graphics.print(text, x, 43)
     end
+    flag(("Drinks %d/2"):format(night.drinks), night.drinks > 0, 10)
+    flag("Gang +5/card", night.gangTalked, 86)
+    flag("Mirror +10", (night.mirrorBonus or 0) > 0, 178)
+    flag(("Won %d/7"):format(#runState.conquests), #runState.conquests > 0, 250)
     love.graphics.setColor(1, 1, 1)
 end
 

@@ -4,7 +4,8 @@
 --         antes de un encuentro), los POIs del mapa, las chicas de la
 --         noche en sus mesas, la camara y el textbox de mensajes.
 -- Update (sistemas): input -> movimiento con colisiones -> animacion ->
---         camara -> proximidad -> interaccion -> respuesta de cada POI.
+--         camara -> proximidad -> interaccion -> reloj de la noche ->
+--         acciones del bar -> inicio de encuentro.
 -- Render (sistemas): mundo dentro de CameraBegin/End; HUD, prompt,
 --         minimapa y textbox afuera (fijos en pantalla).
 
@@ -19,7 +20,11 @@ local SpriteAnimationSystem = require("src.systems.map.SpriteAnimationSystem")
 local CameraSystem = require("src.systems.map.CameraSystem")
 local ProximitySystem = require("src.systems.map.ProximitySystem")
 local InteractionSystem = require("src.systems.map.InteractionSystem")
-local PoiResponseSystem = require("src.systems.map.PoiResponseSystem")
+local NightClockSystem = require("src.systems.map.NightClockSystem")
+local BarActionsSystem = require("src.systems.map.BarActionsSystem")
+local EncounterStartSystem = require("src.systems.map.EncounterStartSystem")
+local FloatingTextSystem = require("src.systems.common.FloatingTextSystem")
+local FloatingTextRenderSystem = require("src.systems.common.FloatingTextRenderSystem")
 local TextboxSystem = require("src.systems.common.TextboxSystem")
 local CameraRenderSystems = require("src.systems.map.CameraRenderSystems")
 local TileMapRenderSystem = require("src.systems.map.TileMapRenderSystem")
@@ -40,7 +45,9 @@ return function(payload)
 
     local runState = payload.runState or RunState.new()
     if not runState.nightState then
-        RunState.startNight(runState, { name = "Debug night", statEffects = {} }, {})
+        -- arranque directo (debug): una noche con chicas al azar
+        RunState.startNight(runState, require("src.data.challenges")[1],
+            require("src.generation.GirlGenerator").night(runState.night, love.math.random))
     end
     local night = runState.nightState
     registry:setResource("runState", runState)
@@ -95,7 +102,7 @@ return function(payload)
         position = { x = 12, y = 340 },
         size = { w = 616, h = 52 },
         textbox = {
-            text = payload.message or "McLaren's. Walk with the arrows/WASD, press E near someone.",
+            text = payload.message or "McLaren's, 21:00. Walk with arrows/WASD, press E near someone. The bar closes at 02:00!",
             visibleChars = 0, speed = 50, ttl = 4,
         },
     })
@@ -106,7 +113,10 @@ return function(payload)
     scene:addSystem(CameraSystem)
     scene:addSystem(ProximitySystem)
     scene:addSystem(InteractionSystem)
-    scene:addSystem(PoiResponseSystem)
+    scene:addSystem(NightClockSystem)
+    scene:addSystem(BarActionsSystem)
+    scene:addSystem(EncounterStartSystem)
+    scene:addSystem(FloatingTextSystem)
     scene:addSystem(TextboxSystem)
     -- mundo (dentro de la camara)
     scene:addSystem(CameraRenderSystems.Begin)
@@ -119,6 +129,7 @@ return function(payload)
     scene:addSystem(MinimapRenderSystem)
     scene:addSystem(InteractPromptRenderSystem)
     scene:addSystem(TextboxRenderSystem)
+    scene:addSystem(FloatingTextRenderSystem)
     scene:addSystem(FadeRenderSystem)
 
     return scene

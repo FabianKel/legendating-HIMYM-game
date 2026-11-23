@@ -1,46 +1,22 @@
--- Mueve el cursor entre las 3 cartas de challenge y confirma la
--- eleccion. Sistema de INPUT: solo lee/escribe el recurso
--- cardSelection y, tras el pequeno delay de "Challenge Accepted!",
--- dispara el cambio a la escena de batalla con el challenge ya
--- aplicado a los stats del jugador.
-
-local ExampleData = require("src.data.ExampleData")
-local RunState = require("src.state.RunState")
+-- Mueve el cursor entre las 3 cartas de challenge y, al confirmar,
+-- emite `challengeChosen`. Sistema de INPUT: no aplica stats, no
+-- genera chicas, no cambia de escena (eso es NightStartSystem).
 
 local BarInputSystem = { name = "barInput" }
 
 function BarInputSystem.update(scene, dt)
     local registry = scene.registry
     local selection = registry:resource("cardSelection")
-    local run = registry:resource("run")
-
-    if selection.confirming then
-        -- ya se eligio carta: solo cuenta el delay antes de cambiar de
-        -- escena (deja ver el texto "Challenge Accepted!" un instante)
-        selection.confirmTimer = selection.confirmTimer - dt
-        if selection.confirmTimer <= 0 then
-            local chosen = registry:get(selection.chosenEntity, "challengeCard")
-            local runState = registry:resource("runState")
-            RunState.applyEffects(runState.player, chosen.statEffects)
-            RunState.startNight(runState, chosen, ExampleData.girlsForNight(run.night))
-            registry:spawn({
-                switchRequest = { to = "map", payload = { runState = runState } },
-            })
-            selection.confirming = false -- un solo switchRequest
-        end
-        return
-    end
+    if selection.confirming then return end
 
     local cards = registry:query("challengeCard")
     for _, event in registry:each("keyPressed") do
-        if event.key == "left" then
+        if event.key == "left" or event.key == "a" then
             selection.cursor = (selection.cursor - 2) % #cards + 1
-        elseif event.key == "right" then
+        elseif event.key == "right" or event.key == "d" then
             selection.cursor = selection.cursor % #cards + 1
         elseif event.key == "return" or event.key == "space" then
-            selection.confirming = true
-            selection.confirmTimer = 0.8
-            selection.chosenEntity = cards[selection.cursor]
+            registry:spawn({ event = true, challengeChosen = { entity = cards[selection.cursor] } })
         end
     end
 end
