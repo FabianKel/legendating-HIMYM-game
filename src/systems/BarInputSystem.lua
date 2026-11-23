@@ -1,0 +1,66 @@
+-- Mueve el cursor entre las 3 cartas de challenge y confirma la
+-- eleccion. Sistema de INPUT: solo lee/escribe el recurso
+-- cardSelection y, tras el pequeno delay de "Challenge Accepted!",
+-- dispara el cambio a la escena de batalla con el challenge ya
+-- aplicado a los stats del jugador.
+
+local ExampleData = require("src.data.ExampleData")
+
+local BarInputSystem = { name = "barInput" }
+
+-- aplica el efecto del challenge elegido sobre los stats del jugador;
+-- ejemplo simple, el balance real de estos numeros queda fuera de
+-- esta tarea de UI
+local function applyChallenge(player, challenge)
+    local updated = {}
+    for key, value in pairs(player) do
+        updated[key] = value
+    end
+    for key, delta in pairs(challenge.statEffects or {}) do
+        updated[key] = (updated[key] or 0) + delta
+    end
+    return updated
+end
+
+function BarInputSystem.update(scene, dt)
+    local registry = scene.registry
+    local selection = registry:resource("cardSelection")
+    local run = registry:resource("run")
+
+    if selection.confirming then
+        -- ya se eligio carta: solo cuenta el delay antes de cambiar de
+        -- escena (deja ver el texto "Challenge Accepted!" un instante)
+        selection.confirmTimer = selection.confirmTimer - dt
+        if selection.confirmTimer <= 0 then
+            local chosen = registry:get(selection.chosenEntity, "challengeCard")
+            registry:spawn({
+                switchRequest = {
+                    to = "battle",
+                    payload = {
+                        night = run.night,
+                        difficulty = run.difficulty,
+                        player = applyChallenge(run.player, chosen),
+                        selectedChallenge = chosen,
+                        girl = ExampleData.girlForNight(run.night),
+                    },
+                },
+            })
+        end
+        return
+    end
+
+    local cards = registry:query("challengeCard")
+    for _, event in registry:each("keyPressed") do
+        if event.key == "left" then
+            selection.cursor = (selection.cursor - 2) % #cards + 1
+        elseif event.key == "right" then
+            selection.cursor = selection.cursor % #cards + 1
+        elseif event.key == "return" or event.key == "space" then
+            selection.confirming = true
+            selection.confirmTimer = 0.8
+            selection.chosenEntity = cards[selection.cursor]
+        end
+    end
+end
+
+return BarInputSystem
