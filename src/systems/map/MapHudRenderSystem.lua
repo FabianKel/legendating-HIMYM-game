@@ -4,6 +4,7 @@
 local Screen = require("src.Screen")
 local Fonts = require("src.ui.Fonts")
 local Widgets = require("src.ui.Widgets")
+local BarActionsSystem = require("src.systems.map.BarActionsSystem")
 
 local MapHudRenderSystem = { name = "mapHudRender" }
 
@@ -34,7 +35,7 @@ function MapHudRenderSystem.draw(scene)
         love.graphics.setColor(on and 0.5 or 0.55, on and 1 or 0.55, on and 0.6 or 0.6)
         love.graphics.print(text, x, 43)
     end
-    flag(("Drinks %d/2"):format(night.drinks), night.drinks > 0, 10)
+    flag(("Drinks %d/%d"):format(night.drinks, BarActionsSystem.maxDrinksForNight(runState.night)), night.drinks > 0, 10)
     flag("Gang +5/card", night.gangTalked, 86)
     flag("Mirror +10", (night.mirrorBonus or 0) > 0, 178)
     flag(("Won %d/7"):format(#runState.conquests), #runState.conquests > 0, 250)

@@ -29,7 +29,7 @@ function ConversationSystem.update(scene, dt)
 
         local why = #reasons > 0 and (" - " .. table.concat(reasons, ", ") .. ".") or "."
         local line = ("\"%s\"%s (%+d)"):format(card.name, why, gain)
-        if exhausted then line = line .. " You're running on empty..." end
+        if exhausted then line = line .. " You're running on empty, it does nothing." end
         TextboxSystem.say(registry, line)
         FloatingTextSystem.spawn(registry, ("%+d Interest"):format(gain), 430, 120,
             gain >= 0 and { 0.5, 1, 0.6 } or { 1, 0.4, 0.4 })

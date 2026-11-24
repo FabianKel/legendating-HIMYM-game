@@ -1,5 +1,6 @@
 -- Lo que hacen los lugares de McLaren's (escucha poiActivated):
---   carl   : un trago -> +3 energia, 15 min (max 2 por noche)
+--   carl   : un trago -> +3 energia, 15 min (max 2 por noche, 3 en
+--            noches 1-3 porque esas noches traen 4 chicas en vez de 3)
 --   gang   : el grupo te da animos -> +5 Interest por carta esta noche, 20 min (1 vez)
 --   mirror : "suit up" -> la proxima chica empieza con +10 Interest, 10 min (1 vez)
 --   exit   : salir del bar = rendirse (pide confirmar con otra E)
@@ -11,7 +12,12 @@ local FloatingTextSystem = require("src.systems.common.FloatingTextSystem")
 
 local BarActionsSystem = { name = "barActions" }
 
-local MAX_DRINKS = 2
+-- noches 1-3 traen 4 chicas (GirlGenerator.countForNight) en vez de 3:
+-- un trago extra de margen mientras todavia estas aprendiendo a
+-- administrar la energia.
+function BarActionsSystem.maxDrinksForNight(night)
+    return night <= 3 and 3 or 2
+end
 local EXIT_CONFIRM_TIME = 3
 
 local function floatAtPlayer(registry, text, color)
@@ -24,14 +30,15 @@ end
 local ACTIONS = {}
 
 function ACTIONS.carl(registry, runState, night)
-    if night.drinks >= MAX_DRINKS then
+    local maxDrinks = BarActionsSystem.maxDrinksForNight(runState.night)
+    if night.drinks >= maxDrinks then
         TextboxSystem.say(registry, "Carl: \"I'm cutting you off, Barney. You've got a challenge to win.\"", 3)
         return
     end
     night.drinks = night.drinks + 1
     night.hour = night.hour + 0.25
     RunState.applyEffects(runState.player, { energy = 3 })
-    TextboxSystem.say(registry, ("Carl pours you a scotch. Energy +3. (%d/%d drinks)"):format(night.drinks, MAX_DRINKS), 3)
+    TextboxSystem.say(registry, ("Carl pours you a scotch. Energy +3. (%d/%d drinks)"):format(night.drinks, maxDrinks), 3)
     floatAtPlayer(registry, "+3 Energy", { 0.5, 1, 0.5 })
 end
 

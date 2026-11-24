@@ -3,6 +3,9 @@ local GirlGenerator = require("src.generation.GirlGenerator")
 local ChallengeDeck = require("src.generation.ChallengeDeck")
 local Cards = require("src.data.cards")
 local events = require("src.data.events")
+local challenges = require("src.data.challenges")
+local EnergySpend = require("src.systems.battle.EnergySpend")
+local BarActionsSystem = require("src.systems.map.BarActionsSystem")
 
 local function girl(overrides)
     local g = { name = "Test", beauty = 6, intelligence = 5, rareza = 5, mood = "Happy" }
@@ -101,6 +104,49 @@ return function(test, seededRandom)
         for _, event in ipairs(events) do
             local delta, text = event.apply(girl(), player)
             assert(type(delta) == "number" and type(text) == "string", event.id)
+        end
+    end)
+
+    test("enough challenges per tier for real variety (no siempre las mismas 3)", function()
+        local perTier, ids = {}, {}
+        for _, c in ipairs(challenges) do
+            perTier[c.tier] = (perTier[c.tier] or 0) + 1
+            assert(not ids[c.id], "repeated challenge id " .. c.id)
+            ids[c.id] = true
+        end
+        for tier = 1, 3 do
+            assert((perTier[tier] or 0) >= 5,
+                ("tier %d only has %d challenges, needs >= 5 for a hand of 3 to vary"):format(
+                    tier, perTier[tier] or 0))
+        end
+    end)
+
+    test("EnergySpend: sin energia la jugada no da ganancia (el costo es real)", function()
+        local function mk(e) return { energy = e, maxEnergy = 10, awesomeness = 0, speech = 5 } end
+
+        local rested = mk(5)
+        local gain, exhausted = EnergySpend.spend(rested, 2, 9)
+        assert(gain == 9 and not exhausted, "con energia de sobra la ganancia no deberia tocarse")
+
+        local tired = mk(1)
+        local gain2, exhausted2 = EnergySpend.spend(tired, 2, 9)
+        assert(exhausted2, "deberia marcar agotado")
+        assert(gain2 <= 0, "sin energia alcanzandole NO debe dar ganancia positiva (antes se reducia a la mitad)")
+        assert(tired.energy == 0, "la energia se clampea en 0, nunca negativa")
+
+        local negative = mk(0)
+        local gain3 = EnergySpend.spend(negative, 1, -4)
+        assert(gain3 == -4, "una ganancia ya negativa no deberia mejorarse por estar agotado")
+    end)
+
+    test("Carl deja un trago extra en las noches de 4 chicas (1-3)", function()
+        for night = 1, 3 do
+            assert(BarActionsSystem.maxDrinksForNight(night) == 3,
+                "noche " .. night .. " deberia permitir 3 tragos (trae 4 chicas)")
+        end
+        for night = 4, 7 do
+            assert(BarActionsSystem.maxDrinksForNight(night) == 2,
+                "noche " .. night .. " deberia permitir 2 tragos (trae 3 chicas)")
         end
     end)
 end

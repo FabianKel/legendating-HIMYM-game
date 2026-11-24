@@ -24,7 +24,7 @@ function ApproachSystem.update(scene, dt)
         battle.interest = math.max(0, math.min(Interest.MAX, battle.interest + gain))
 
         local line = ("You pull \"%s\". %s (%+d)"):format(play.name, reason or "", gain)
-        if exhausted then line = line .. " You're exhausted..." end
+        if exhausted then line = line .. " You're exhausted, it does nothing." end
         TextboxSystem.say(registry, line)
         FloatingTextSystem.spawn(registry, ("%+d Interest"):format(gain), 430, 120,
             gain >= 0 and { 0.5, 1, 0.6 } or { 1, 0.4, 0.4 })

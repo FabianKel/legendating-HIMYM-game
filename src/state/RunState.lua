@@ -38,7 +38,7 @@ function RunState.new(seed)
         player = {
             awesomeness = 0,   -- -1 rareza .. 0 casual .. 1 formal
             speech      = 5,   -- 1..10
-            energy      = 8,
+            energy      = 10,  -- tanque lleno: la noche 1 ya es dura sola, que no sea ademas sin energia
             maxEnergy   = 10,
             economy     = 100, -- siempre 100: Barney siempre tiene dinero
         },
